@@ -39,7 +39,6 @@ class ForegroundService : Service() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Flutter Screen Recording")
                 .setContentText(input)
-                .setSmallIcon(R.drawable.icon)
                 .setContentIntent(pendingIntent)
                 .build()
         startForeground(1, notification)
