@@ -27,6 +27,9 @@ class navigator {
       Map<String, dynamic> mediaConstraints) async {
     try {
       final mediaDevices = HTML.window.navigator.mediaDevices;
+      if (mediaDevices == null) {
+        throw 'getDisplayMedia is not supported';
+      }
       final JS.JsObject arg = JS.JsObject.jsify(mediaConstraints);
 
       final HTML.MediaStream jsStream =
@@ -39,16 +42,21 @@ class navigator {
   }
 
   static Future<List<dynamic>> getSources() async {
-    final devices = await HTML.window.navigator.mediaDevices.enumerateDevices();
-    final result = [];
-    for (final device in devices) {
-      result.add(<String, String>{
-        'deviceId': device.deviceId,
-        'groupId': device.groupId,
-        'kind': device.kind,
-        'label': device.label
-      });
+    if (HTML.window.navigator.mediaDevices == null) {
+      return [];
+    } else {
+      final devices =
+          await HTML.window.navigator.mediaDevices!.enumerateDevices();
+      final result = [];
+      for (final device in devices) {
+        result.add(<String, String>{
+          'deviceId': device.deviceId,
+          'groupId': device.groupId,
+          'kind': device.kind,
+          'label': device.label
+        });
+      }
+      return result;
     }
-    return result;
   }
 }
