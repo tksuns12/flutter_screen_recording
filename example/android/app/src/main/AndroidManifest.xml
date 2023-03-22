@@ -6,7 +6,7 @@
         android:icon="@mipmap/ic_launcher">
 
         <service
-            android:name="com.foregroundservice.ForegroundService"
+            android:name="com.isvisoft.flutter_screen_recording.ForegroundService"
             android:foregroundServiceType="mediaProjection">
 
         </service>

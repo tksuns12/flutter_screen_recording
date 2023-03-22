@@ -16,10 +16,10 @@ class _MyAppState extends State<MyApp> {
   int _time = 0;
 
   requestPermissions() async {
-    await PermissionHandler().requestPermissions([
-      PermissionGroup.storage,
-      PermissionGroup.photos,
-      PermissionGroup.microphone,
+    Future.wait([
+      Permission.storage.request(),
+      Permission.photos.request(),
+      Permission.microphone.request()
     ]);
   }
 
@@ -60,7 +60,7 @@ class _MyAppState extends State<MyApp> {
             Text('Time: $_time\n'),
             !recording
                 ? Center(
-                    child: RaisedButton(
+                    child: ElevatedButton(
                       child: Text("Record Screen"),
                       onPressed: () => startScreenRecord(false),
                     ),
@@ -68,13 +68,13 @@ class _MyAppState extends State<MyApp> {
                 : Container(),
             !recording
                 ? Center(
-                    child: RaisedButton(
+                    child: ElevatedButton(
                       child: Text("Record Screen & audio"),
                       onPressed: () => startScreenRecord(true),
                     ),
                   )
                 : Center(
-                    child: RaisedButton(
+                    child: ElevatedButton(
                       child: Text("Stop Record"),
                       onPressed: () => stopScreenRecord(),
                     ),

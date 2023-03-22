@@ -27,15 +27,13 @@ abstract class FlutterScreenRecordingPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<bool> startRecordScreen(String name) {
-    throw UnimplementedError();
-  }
+  Future<bool> startRecordScreen(String name);
 
-  Future<bool> startRecordScreenAndAudio(String name) {
-    throw UnimplementedError();
-  }
+  Future<bool> startRecordScreenAndAudio(String name);
 
-  Future<String> get stopRecordScreen {
-    throw UnimplementedError();
-  }
+  Future<bool> pausedRecordScreen();
+
+  Future<bool> resumeRecordScreen();
+
+  Future<String> get stopRecordScreen;
 }

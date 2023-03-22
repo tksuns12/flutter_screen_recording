@@ -25,4 +25,16 @@ class MethodChannelFlutterScreenRecording
     final String path = await _channel.invokeMethod('stopRecordScreen');
     return path;
   }
+
+  @override
+  Future<bool> pausedRecordScreen() async {
+    final bool paused = await _channel.invokeMethod('pausedRecordScreen');
+    return paused;
+  }
+
+  @override
+  Future<bool> resumeRecordScreen() async {
+    final bool resume = await _channel.invokeMethod('resumeRecordScreen');
+    return resume;
+  }
 }

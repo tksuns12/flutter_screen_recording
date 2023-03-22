@@ -5,30 +5,35 @@ import 'dart:async';
 import 'dart:io';
 
 class FlutterScreenRecording {
-  static Future<bool> startRecordScreen(String name, {String titleNotification, String messageNotification}) async{
+  static Future<bool> startRecordScreen(String name,
+      {String titleNotification, String messageNotification}) async {
     await _maybeStartFGS(titleNotification, messageNotification);
-    final bool start = await FlutterScreenRecordingPlatform.instance.startRecordScreen(name);
+    final bool start =
+        await FlutterScreenRecordingPlatform.instance.startRecordScreen(name);
     return start;
   }
 
-  static Future<bool> startRecordScreenAndAudio(String name, {String titleNotification, String messageNotification}) async {
+  static Future<bool> startRecordScreenAndAudio(String name,
+      {String titleNotification, String messageNotification}) async {
     //await _maybeStartFGS(titleNotification, messageNotification);
-    final bool start = await FlutterScreenRecordingPlatform.instance.startRecordScreenAndAudio(name);
+    final bool start = await FlutterScreenRecordingPlatform.instance
+        .startRecordScreenAndAudio(name);
     return start;
   }
 
   static Future<String> get stopRecordScreen async {
-    final String path = await FlutterScreenRecordingPlatform.instance.stopRecordScreen;
+    final String path =
+        await FlutterScreenRecordingPlatform.instance.stopRecordScreen;
     if (!kIsWeb && Platform.isAndroid) {
       FlutterForegroundTask.stopService();
     }
     return path;
   }
 
-  static  _maybeStartFGS(String titleNotification, String messageNotification) async {
+  static _maybeStartFGS(
+      String titleNotification, String messageNotification) async {
     if (!kIsWeb && Platform.isAndroid) {
-
-      await FlutterForegroundTask.init(
+      FlutterForegroundTask.init(
         androidNotificationOptions: AndroidNotificationOptions(
           channelId: 'notification_channel_id',
           channelName: titleNotification,
@@ -54,7 +59,10 @@ class FlutterScreenRecording {
           autoRunOnBoot: true,
           allowWifiLock: true,
         ),
-        printDevLog: true,
+        iosNotificationOptions: IOSNotificationOptions(
+          showNotification: true,
+          playSound: false,
+        ),
       );
     }
   }

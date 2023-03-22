@@ -7,7 +7,6 @@ public class SwiftFlutterScreenRecordingPlugin: NSObject, FlutterPlugin {
     
 let recorder = RPScreenRecorder.shared()
 
-var videoOutputURL : URL?
 var videoWriter : AVAssetWriter?
 
 var audioInput:AVAssetWriterInput!
@@ -16,6 +15,7 @@ var nameVideo: String = ""
 var recordAudio: Bool = false;
 var myResult: FlutterResult?
 let screenSize = UIScreen.main.bounds
+    var videoSegments:[URL] = []
     
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "flutter_screen_recording", binaryMessenger: registrar.messenger())
@@ -35,29 +35,85 @@ let screenSize = UIScreen.main.bounds
 
     }else if(call.method == "stopRecordScreen"){
         if(videoWriter != nil){
-            stopRecording()
+            stopRecording { [weak self] in
+                guard let self = self else { return }
+                
+                // Merge the video segments
+                self.mergeVideoSegments(segments: self.videoSegments) { result in
+                    switch result {
+                    case .success(let mergedVideoURL):
+                        print("Merged video URL: \(mergedVideoURL)")
+                        
+                        // Save the merged video to the Photos Library
+                        PHPhotoLibrary.shared().performChanges({
+                            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: mergedVideoURL)
+                        }) { saved, error in
+                            if saved {
+                                print("The merged video was successfully saved")
+                            } else {
+                                print("Failed to save the merged video")
+                                if let error = error {
+                                    print("Error: \(error.localizedDescription)")
+                                }
+                            }
+                        }
+                        
+                    case .failure(let error):
+                        print("Failed to merge video segments")
+                        print("Error: \(error.localizedDescription)")
+                    }
+                }
+            }
+
             let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as NSString
             result(String(documentsPath.appendingPathComponent(nameVideo)))
         }
          result("")
+    } else if (call.method=="pauseRecordScreen") {
+        pauseRecording{
+            result(true)
+        }
+        
+        
     }
+      else if (call.method=="resumeRecordScreen") {
+          resumeRecording()
+      }
   }
+    
+    func pauseRecording(completion: @escaping () -> Void) {
+        stopRecording {
+            print("Recording paused")
+            completion()
+        }
+    }
+    
+    @objc func resumeRecording() {
+        startRecording()
+    }
 
 
     @objc func startRecording() {
 
-        //Use ReplayKit to record the screen
-        //Create the file path to write to
+        // Use ReplayKit to record the screen
+        // Create a unique name for each video segment using the current timestamp
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let nameVideo = "video_segment_\(timestamp).mp4"
+
+        // Create the file path to write to
         let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as NSString
-        self.videoOutputURL = URL(fileURLWithPath: documentsPath.appendingPathComponent(nameVideo))
+        let videoOutputURL = URL(fileURLWithPath: documentsPath.appendingPathComponent(nameVideo))
+
+        // Add the URL to the videoSegments array
+        self.videoSegments.append(videoOutputURL)
 
         //Check the file does not already exist by deleting it if it does
         do {
-            try FileManager.default.removeItem(at: videoOutputURL!)
+            try FileManager.default.removeItem(at: videoOutputURL)
         } catch {}
 
         do {
-            try videoWriter = AVAssetWriter(outputURL: videoOutputURL!, fileType: AVFileType.mp4)
+            try videoWriter = AVAssetWriter(outputURL: videoOutputURL, fileType: AVFileType.mp4)
         } catch let writerError as NSError {
             print("Error opening video file", writerError);
             videoWriter = nil;
@@ -67,10 +123,10 @@ let screenSize = UIScreen.main.bounds
         //Create the video settings
         if #available(iOS 11.0, *) {
             
-            var codec = AVVideoCodecJPEG;
+            var codec = AVVideoCodecType.jpeg;
             
             if(recordAudio){
-                codec = AVVideoCodecH264;
+                codec = AVVideoCodecType.h264;
             }
             
             let videoSettings: [String : Any] = [
@@ -158,39 +214,64 @@ let screenSize = UIScreen.main.bounds
         }
     }
 
-    @objc func stopRecording() {
-        //Stop Recording the screen
+    @objc func stopRecording(completion: @escaping () -> Void) {
         if #available(iOS 11.0, *) {
-            RPScreenRecorder.shared().stopCapture( handler: { (error) in
-                print("stopping recording");
-            })
-        } else {
-          //  Fallback on earlier versions
-        }
+            RPScreenRecorder.shared().stopCapture { error in
+                print("stopping recording")
 
-        self.videoWriterInput?.markAsFinished();
-        self.audioInput?.markAsFinished();
-        
-        self.videoWriter?.finishWriting {
-            print("finished writing video");
+                // Finish writing video and audio inputs
+                self.videoWriterInput?.markAsFinished()
+                self.audioInput?.markAsFinished()
 
-            //Now save the video
-            PHPhotoLibrary.shared().performChanges({
-                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: self.videoOutputURL!)
-            }) { saved, error in
-                if saved {
-                    let alertController = UIAlertController(title: "Your video was successfully saved", message: nil, preferredStyle: .alert)
-                    let defaultAction = UIAlertAction(title: "OK", style: .default, handler: nil)
-                    alertController.addAction(defaultAction)
-                    //self.present(alertController, animated: true, completion: nil)
-                }
-                if error != nil {
-                    print("Video did not save for some reason", error.debugDescription);
-                    debugPrint(error?.localizedDescription ?? "error is nil");
+                // Finish writing the video segment
+                self.videoWriter?.finishWriting {
+                    print("finished writing video")
+                    completion()
                 }
             }
+        } else {
+            // Fallback on earlier versions
         }
     
 }
-    
+    func mergeVideoSegments(segments: [URL], completion: @escaping (Result<URL, Error>) -> Void) {
+        let mixComposition = AVMutableComposition()
+        var totalDuration: CMTime = kCMTimeZero
+
+        for segment in segments {
+            let asset = AVAsset(url: segment)
+            guard let videoTrack = asset.tracks(withMediaType: .video).first else { continue }
+
+            let compositionVideoTrack = mixComposition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
+            do {
+                try compositionVideoTrack?.insertTimeRange(CMTimeRangeMake(kCMTimeZero, asset.duration), of: videoTrack, at: totalDuration)
+                totalDuration = CMTimeAdd(totalDuration, asset.duration)
+            } catch {
+                completion(.failure(error))
+                return
+            }
+        }
+
+        // Export the merged video
+        let outputURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("merged_video.mp4")
+
+        if let exporter = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality) {
+            exporter.outputURL = outputURL
+            exporter.outputFileType = .mp4
+            exporter.shouldOptimizeForNetworkUse = true
+
+            exporter.exportAsynchronously {
+                switch exporter.status {
+                case .completed:
+                    completion(.success(outputURL))
+                case .failed, .cancelled:
+                    if let error = exporter.error {
+                        completion(.failure(error))
+                    }
+                default:
+                    break
+                }
+            }
+        }
+    }
 }

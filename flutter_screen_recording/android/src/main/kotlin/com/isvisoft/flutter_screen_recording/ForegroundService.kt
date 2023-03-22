@@ -1,4 +1,4 @@
-package com.foregroundservice
+package com.isvisoft.flutter_screen_recording
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -9,8 +9,6 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.isvisoft.flutter_screen_recording.FlutterScreenRecordingPlugin
-import com.isvisoft.flutter_screen_recording.R
 
 
 class ForegroundService : Service() {
@@ -26,6 +24,7 @@ class ForegroundService : Service() {
             context.stopService(stopIntent)
         }
     }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
         val input = intent?.getStringExtra("inputExtra")
