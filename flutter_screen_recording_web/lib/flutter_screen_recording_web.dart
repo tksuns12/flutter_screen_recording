@@ -37,7 +37,8 @@ class WebFlutterScreenRecording extends FlutterScreenRecordingPlatform {
       if (recordAudio) {
         audioStream = await navigator.getUserMedia({"audio": true});
       }
-      stream = await navigator.getDisplayMedia({"audio": recordAudio, "video": recordVideo});
+      stream = await navigator
+          .getDisplayMedia({"audio": recordAudio, "video": recordVideo});
       this.name = name;
       if (recordAudio) {
         stream.addTrack(audioStream.getAudioTracks()[0]);
@@ -77,9 +78,9 @@ class WebFlutterScreenRecording extends FlutterScreenRecordingPlatform {
         print("blob size: ${recordedChunks?.size ?? 'empty'}");
       });
 
-      this.stream.getVideoTracks()[0].addEventListener('ended', (Event event)  {
-         //If user stop sharing screen, stop record
-         stopRecordScreen;
+      this.stream.getVideoTracks()[0].addEventListener('ended', (Event event) {
+        //If user stop sharing screen, stop record
+        stopRecordScreen;
       });
 
       this.mediaRecorder.start();
@@ -95,7 +96,6 @@ class WebFlutterScreenRecording extends FlutterScreenRecordingPlatform {
   Future<String> get stopRecordScreen {
     final c = new Completer<String>();
     this.mediaRecorder.addEventListener("stop", (event) {
-
       mediaRecorder = null;
       this.stream.getTracks().forEach((element) => element.stop());
       this.stream = null;
@@ -113,5 +113,17 @@ class WebFlutterScreenRecording extends FlutterScreenRecordingPlatform {
     });
     mediaRecorder.stop();
     return c.future;
+  }
+
+  @override
+  Future<bool> pausedRecordScreen() {
+    // TODO: implement pausedRecordScreen
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> resumeRecordScreen() {
+    // TODO: implement resumeRecordScreen
+    throw UnimplementedError();
   }
 }
