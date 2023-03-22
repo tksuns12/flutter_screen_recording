@@ -21,6 +21,18 @@ class FlutterScreenRecording {
     return start;
   }
 
+  static Future<bool> pauseRecordScreen() async {
+    final bool pause =
+        await FlutterScreenRecordingPlatform.instance.pausedRecordScreen();
+    return pause;
+  }
+
+  static Future<bool> resumeRecordScreen() async {
+    final bool resume =
+        await FlutterScreenRecordingPlatform.instance.resumeRecordScreen();
+    return resume;
+  }
+
   static Future<String> get stopRecordScreen async {
     final String path =
         await FlutterScreenRecordingPlatform.instance.stopRecordScreen;
